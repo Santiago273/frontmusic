@@ -16,12 +16,25 @@ const NextIcon = () => (
   </svg>
 );
 
+const PlayIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="6 3 20 12 6 21 6 3"></polygon>
+  </svg>
+);
+
+const PauseIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <rect x="5" y="4" width="4.5" height="16" rx="1.5"></rect>
+    <rect x="14.5" y="4" width="4.5" height="16" rx="1.5"></rect>
+  </svg>
+);
+
 export function PlayerBar({ currentTrack, onNext, onPrev }) {
   const playerRef = useRef(null);
   const containerRef = useRef(null);
   const onNextRef = useRef(onNext);
 
-  // Estados para el Modal, Play/Pausa y Barra de Avance
+  // Dagiti state para iti Modal, Play/Pause ken Pagor-orasan
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
@@ -40,7 +53,39 @@ export function PlayerBar({ currentTrack, onNext, onPrev }) {
     }
   }, []);
 
-  // Intervalo para actualizar la barra de progreso mientras suena el tema
+  // Panangitunos iti Media Session para kadagiti kontrol iti selpon
+  useEffect(() => {
+    if (!currentTrack || !('mediaSession' in navigator)) return;
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentTrack.title,
+      artist: currentTrack.artist,
+      album: 'KekuSound PWA',
+      artwork: [
+        { src: currentTrack.cover || '/icon-512.png', sizes: '512x512', type: 'image/png' }
+      ]
+    });
+
+    navigator.mediaSession.setActionHandler('play', () => {
+      if (playerRef.current && typeof playerRef.current.playVideo === 'function') {
+        playerRef.current.playVideo();
+        setIsPlaying(true);
+      }
+    });
+
+    navigator.mediaSession.setActionHandler('pause', () => {
+      if (playerRef.current && typeof playerRef.current.pauseVideo === 'function') {
+        playerRef.current.pauseVideo();
+        setIsPlaying(false);
+      }
+    });
+
+    navigator.mediaSession.setActionHandler('previoustrack', onPrev || null);
+    navigator.mediaSession.setActionHandler('nexttrack', onNext || null);
+
+  }, [currentTrack, onPrev, onNext]);
+
+  // Panangpabaro iti oras ken panagandar ti kanta
   useEffect(() => {
     const timer = setInterval(() => {
       if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
@@ -82,7 +127,6 @@ export function PlayerBar({ currentTrack, onNext, onPrev }) {
               setIsPlaying(true);
             },
             onStateChange: (event) => {
-              // event.data: 1 = Playing, 2 = Paused, 0 = Ended
               if (event.data === 1) setIsPlaying(true);
               if (event.data === 2) setIsPlaying(false);
 
@@ -104,7 +148,6 @@ export function PlayerBar({ currentTrack, onNext, onPrev }) {
     }
   }, [currentTrack]);
 
-  // Alternar Play / Pause usando la instancia de YouTube
   const togglePlay = (e) => {
     if (e) e.stopPropagation();
     if (!playerRef.current) return;
@@ -122,7 +165,6 @@ export function PlayerBar({ currentTrack, onNext, onPrev }) {
     }
   };
 
-  // Adelantar o retroceder en la barra
   const handleSeek = (e) => {
     e.stopPropagation();
     const newTime = parseFloat(e.target.value);
@@ -144,12 +186,12 @@ export function PlayerBar({ currentTrack, onNext, onPrev }) {
   return (
     <>
       <aside className="player-bar">
-        {/* Tocar la carátula o nombre abre el modal */}
+        {/* Iklik tapno lumawa ti ladawan */}
         <div
           className="current-meta"
           onClick={() => setIsExpanded(true)}
           style={{ cursor: 'pointer' }}
-          title="Toca para ampliar carátula"
+          title="Tukit tapno mapadakkel ti ladawan"
         >
           <img
             src={currentTrack.cover}
@@ -171,7 +213,7 @@ export function PlayerBar({ currentTrack, onNext, onPrev }) {
             className="control-btn"
             onClick={onPrev}
             disabled={!onPrev}
-            title="Anterior"
+            title="Nalabas"
           >
             <PrevIcon />
           </button>
@@ -179,7 +221,7 @@ export function PlayerBar({ currentTrack, onNext, onPrev }) {
             className="control-btn"
             onClick={onNext}
             disabled={!onNext}
-            title="Siguiente"
+            title="Sumaruno"
           >
             <NextIcon />
           </button>
@@ -190,21 +232,21 @@ export function PlayerBar({ currentTrack, onNext, onPrev }) {
         </div>
       </aside>
 
-      {/* --- MODAL PANTALLA COMPLETA --- */}
+      {/* --- MODAL ITI ENTERO NGA IKRAN --- */}
       {isExpanded && (
         <div className="player-modal-overlay" onClick={() => setIsExpanded(false)}>
           <div className="player-modal-content" onClick={(e) => e.stopPropagation()}>
             
-            {/* Botón cerrar modal */}
+            {/* Buton a pangrikep */}
             <div className="modal-header">
               <button className="close-modal-btn" onClick={() => setIsExpanded(false)}>
                 ▼
               </button>
-              <div className="modal-header-title">Reproduciendo</div>
+              <div className="modal-header-title">Agpukpukaw / Agtoktokar</div>
               <div style={{ width: 32 }}></div>
             </div>
 
-            {/* Disco en grande: tocar el centro pausa o reanuda */}
+            {/* Dakkel a plaka/ladawan: Iklik ti tengnga tapno agsardeng wenno agtuloy */}
             <div className="big-cover-container" onClick={togglePlay}>
               <img
                 src={currentTrack.cover}
@@ -216,17 +258,19 @@ export function PlayerBar({ currentTrack, onNext, onPrev }) {
                 }}
               />
               <div className="center-play-overlay">
-                <span className="overlay-icon">{isPlaying ? '⏸' : '▶'}</span>
+                <span className="overlay-icon">
+                  {isPlaying ? <PauseIcon size={32} /> : <PlayIcon size={32} />}
+                </span>
               </div>
             </div>
 
-            {/* Info de la pista */}
+            {/* Pannakaipalawag ti kanta */}
             <div className="modal-track-info">
               <h2>{currentTrack.title}</h2>
               <p>{currentTrack.artist}</p>
             </div>
 
-            {/* Barra de avance de reproducción */}
+            {/* Linia ti panagandar */}
             <div className="progress-container">
               <input
                 type="range"
@@ -242,13 +286,13 @@ export function PlayerBar({ currentTrack, onNext, onPrev }) {
               </div>
             </div>
 
-            {/* Controles en el modal */}
+            {/* Dagiti buton ti modal */}
             <div className="modal-controls">
               <button className="control-btn large-btn" onClick={onPrev} disabled={!onPrev}>
                 <PrevIcon />
               </button>
               <button className="control-btn play-hero-btn" onClick={togglePlay}>
-                {isPlaying ? '⏸' : '▶'}
+                {isPlaying ? <PauseIcon size={28} /> : <PlayIcon size={28} />}
               </button>
               <button className="control-btn large-btn" onClick={onNext} disabled={!onNext}>
                 <NextIcon />
