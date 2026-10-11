@@ -1,62 +1,134 @@
 // src/components/PlayerBar/PlayerBar.jsx
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './PlayerBar.css';
 
+const PrevIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="19 20 9 12 19 4 19 20"></polygon>
+    <line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"></line>
+  </svg>
+);
+
+const NextIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="5 4 15 12 5 20 5 4"></polygon>
+    <line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"></line>
+  </svg>
+);
+
 export function PlayerBar({ currentTrack, onNext, onPrev }) {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const playerRef = useRef(null);
+  const containerRef = useRef(null);
+  const onNextRef = useRef(onNext);
+
+  // Estados para el Modal, Play/Pausa y Barra de Avance
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [isExpanded, setIsExpanded] = useState(false);
 
-  const audioRef = useRef(null);
-
-  // Cada vez que cambia la pista seleccionada
   useEffect(() => {
-    if (currentTrack) {
-      setCurrentTime(0);
-      setIsPlaying(true);
-      if (audioRef.current) {
-        audioRef.current.play().catch(() => setIsPlaying(false));
+    onNextRef.current = onNext;
+  }, [onNext]);
+
+  useEffect(() => {
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    }
+  }, []);
+
+  // Intervalo para actualizar la barra de progreso mientras suena el tema
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+        const cur = playerRef.current.getCurrentTime() || 0;
+        const dur = playerRef.current.getDuration() || 0;
+        setCurrentTime(cur);
+        setDuration(dur);
       }
+    }, 500);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!currentTrack) return;
+
+    setCurrentTime(0);
+    setIsPlaying(true);
+
+    const initOrLoadPlayer = () => {
+      if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
+        playerRef.current.loadVideoById(currentTrack.id);
+        return;
+      }
+
+      if (window.YT && window.YT.Player && containerRef.current) {
+        playerRef.current = new window.YT.Player(containerRef.current, {
+          height: '100%',
+          width: '100%',
+          videoId: currentTrack.id,
+          playerVars: {
+            autoplay: 1,
+            playsinline: 1,
+            origin: window.location.origin
+          },
+          events: {
+            onReady: (event) => {
+              event.target.playVideo();
+              setIsPlaying(true);
+            },
+            onStateChange: (event) => {
+              // event.data: 1 = Playing, 2 = Paused, 0 = Ended
+              if (event.data === 1) setIsPlaying(true);
+              if (event.data === 2) setIsPlaying(false);
+
+              if (event.data === 0) {
+                if (onNextRef.current) {
+                  onNextRef.current();
+                }
+              }
+            }
+          }
+        });
+      }
+    };
+
+    if (window.YT && window.YT.Player) {
+      initOrLoadPlayer();
     } else {
-      setIsPlaying(false);
+      window.onYouTubeIframeAPIReady = initOrLoadPlayer;
     }
   }, [currentTrack]);
 
-  // Manejador de Play/Pause
+  // Alternar Play / Pause usando la instancia de YouTube
   const togglePlay = (e) => {
     if (e) e.stopPropagation();
-    if (!audioRef.current || !currentTrack) return;
+    if (!playerRef.current) return;
 
     if (isPlaying) {
-      audioRef.current.pause();
+      if (typeof playerRef.current.pauseVideo === 'function') {
+        playerRef.current.pauseVideo();
+      }
       setIsPlaying(false);
     } else {
-      audioRef.current.play();
+      if (typeof playerRef.current.playVideo === 'function') {
+        playerRef.current.playVideo();
+      }
       setIsPlaying(true);
     }
   };
 
-  // Actualizar tiempos mientras se reproduce
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration || 0);
-    }
-  };
-
-  // Salto en la barra de tiempo
+  // Adelantar o retroceder en la barra
   const handleSeek = (e) => {
     e.stopPropagation();
     const newTime = parseFloat(e.target.value);
     setCurrentTime(newTime);
-    if (audioRef.current) {
-      audioRef.current.currentTime = newTime;
+    if (playerRef.current && typeof playerRef.current.seekTo === 'function') {
+      playerRef.current.seekTo(newTime, true);
     }
   };
 
@@ -69,73 +141,92 @@ export function PlayerBar({ currentTrack, onNext, onPrev }) {
 
   if (!currentTrack) return null;
 
-  const audioSource = currentTrack.streamUrl || currentTrack.url || `https://www.youtube.com/watch?v=${currentTrack.id}`;
-  const coverUrl = currentTrack.cover || currentTrack.thumbnail || '/keku-svg.svg';
-
   return (
     <>
-      {/* Audio nativo oculto */}
-      <audio
-        ref={audioRef}
-        src={audioSource}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onEnded={onNext}
-      />
-
-      {/* --- 1. BARRA INFERIOR HABITUAL --- */}
-      <div className="player-bar">
-        {/* Al hacer clic en los datos del tema, se expande a pantalla completa */}
-        <div className="current-meta clickable-meta" onClick={() => setIsExpanded(true)}>
-          <img src={coverUrl} alt="Cover" className="current-cover" />
+      <aside className="player-bar">
+        {/* Tocar la carátula o nombre abre el modal */}
+        <div
+          className="current-meta"
+          onClick={() => setIsExpanded(true)}
+          style={{ cursor: 'pointer' }}
+          title="Toca para ampliar carátula"
+        >
+          <img
+            src={currentTrack.cover}
+            alt={currentTrack.title}
+            className="current-cover"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = '/keku-svg.svg';
+            }}
+          />
           <div className="meta-text">
-            <strong>{currentTrack.title}</strong>
+            <strong title={currentTrack.title}>{currentTrack.title}</strong>
             <span>{currentTrack.artist}</span>
           </div>
-          <span className="expand-hint">▲</span>
         </div>
 
-        {/* Controles de la barra reducida */}
         <div className="player-controls">
-          <button className="control-btn" onClick={onPrev} title="Anterior">⏮</button>
-          <button className="control-btn play-main-btn" onClick={togglePlay} title={isPlaying ? "Pausar" : "Reproducir"}>
-            {isPlaying ? '⏸' : '▶'}
+          <button
+            className="control-btn"
+            onClick={onPrev}
+            disabled={!onPrev}
+            title="Anterior"
+          >
+            <PrevIcon />
           </button>
-          <button className="control-btn" onClick={onNext} title="Siguiente">⏭</button>
+          <button
+            className="control-btn"
+            onClick={onNext}
+            disabled={!onNext}
+            title="Siguiente"
+          >
+            <NextIcon />
+          </button>
         </div>
-      </div>
 
-      {/* --- 2. MODAL / VISTA EXPANDIDA EN PANTALLA COMPLETA --- */}
+        <div className="player-embed">
+          <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+        </div>
+      </aside>
+
+      {/* --- MODAL PANTALLA COMPLETA --- */}
       {isExpanded && (
         <div className="player-modal-overlay" onClick={() => setIsExpanded(false)}>
           <div className="player-modal-content" onClick={(e) => e.stopPropagation()}>
             
-            {/* Cabecera con botón de cierre */}
+            {/* Botón cerrar modal */}
             <div className="modal-header">
-              <button className="close-modal-btn" onClick={() => setIsExpanded(false)}>▼</button>
+              <button className="close-modal-btn" onClick={() => setIsExpanded(false)}>
+                ▼
+              </button>
               <div className="modal-header-title">Reproduciendo</div>
               <div style={{ width: 32 }}></div>
             </div>
 
-            {/* Disco grande: al tocarlo pausa / reanuda */}
+            {/* Disco en grande: tocar el centro pausa o reanuda */}
             <div className="big-cover-container" onClick={togglePlay}>
               <img
-                src={coverUrl}
-                alt="Carátula completa"
-                className={`big-cover-img ${isPlaying ? 'rotating-subtle' : 'paused'}`}
+                src={currentTrack.cover}
+                alt={currentTrack.title}
+                className="big-cover-img"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = '/keku-svg.svg';
+                }}
               />
               <div className="center-play-overlay">
                 <span className="overlay-icon">{isPlaying ? '⏸' : '▶'}</span>
               </div>
             </div>
 
-            {/* Título y artista */}
+            {/* Info de la pista */}
             <div className="modal-track-info">
               <h2>{currentTrack.title}</h2>
               <p>{currentTrack.artist}</p>
             </div>
 
-            {/* Barra de progreso de reproducción */}
+            {/* Barra de avance de reproducción */}
             <div className="progress-container">
               <input
                 type="range"
@@ -151,13 +242,17 @@ export function PlayerBar({ currentTrack, onNext, onPrev }) {
               </div>
             </div>
 
-            {/* Controles expandidos */}
+            {/* Controles en el modal */}
             <div className="modal-controls">
-              <button className="control-btn large-btn" onClick={onPrev}>⏮</button>
+              <button className="control-btn large-btn" onClick={onPrev} disabled={!onPrev}>
+                <PrevIcon />
+              </button>
               <button className="control-btn play-hero-btn" onClick={togglePlay}>
                 {isPlaying ? '⏸' : '▶'}
               </button>
-              <button className="control-btn large-btn" onClick={onNext}>⏭</button>
+              <button className="control-btn large-btn" onClick={onNext} disabled={!onNext}>
+                <NextIcon />
+              </button>
             </div>
 
           </div>
