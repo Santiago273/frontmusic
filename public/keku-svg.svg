@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Fondo con gradiente oscuro -->
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0e1726" />
+      <stop offset="100%" stop-color="#06080d" />
+    </radialGradient>
+
+    <!-- Gradiente de la K -->
+    <linearGradient id="cyanNeon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a5f3fc" />
+      <stop offset="50%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+
+    <!-- Efecto de resplandor Neón -->
+    <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="12" result="blur1" />
+      <feGaussianBlur stdDeviation="24" result="blur2" />
+      <feMerge>
+        <feMergeNode in="blur2" />
+        <feMergeNode in="blur1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Contenedor redondeado tipo app icon -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGlow)" stroke="#06b6d4" stroke-opacity="0.3" stroke-width="4"/>
+
+  <!-- Anillo sutil de audio -->
+  <circle cx="256" cy="256" r="210" fill="none" stroke="#06b6d4" stroke-opacity="0.12" stroke-width="2" stroke-dasharray="16 12" />
+
+  <!-- K Neón con onda musical integrada -->
+  <g filter="url(#neonGlow)">
+    <!-- Barra vertical izquierda -->
+    <rect x="140" y="116" width="46" height="280" rx="23" fill="url(#cyanNeon)" />
+
+    <!-- Brazo superior derecho -->
+    <path d="M175 256 L 315 130 A 24 24 0 0 1 350 166 L 225 278 Z" fill="url(#cyanNeon)" />
+
+    <!-- Brazo inferior derecho con nota/nodo musical -->
+    <path d="M195 240 L 320 370 A 24 24 0 0 1 285 404 L 165 278 Z" fill="url(#cyanNeon)" />
+    
+    <!-- Detalle luminoso / cabeza de nota en el remate superior -->
+    <circle cx="334" cy="148" r="14" fill="#e0f2fe" />
+    <!-- Detalle luminoso en el remate inferior -->
+    <circle cx="304" cy="388" r="14" fill="#e0f2fe" />
+  </g>
+</svg>
