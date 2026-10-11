@@ -90,3 +90,62 @@
   background: #000;
   border: 1px solid var(--border-glass);
 }
+
+/* --- Adaptación móvil (Pantallas menores a 768px) --- */
+@media (max-width: 768px) {
+  .player-bar {
+    height: auto;
+    padding: 0.6rem 0.85rem calc(0.6rem + env(safe-area-inset-bottom)) 0.85rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 0.6rem 0.5rem;
+    align-items: center;
+  }
+
+  /* Info de la pista (arriba a la izquierda) */
+  .current-meta {
+    grid-column: 1 / 2;
+    max-width: 100%;
+    gap: 0.65rem;
+  }
+
+  .current-cover {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+  }
+
+  .meta-text {
+    overflow: hidden;
+  }
+
+  .meta-text strong {
+    font-size: 0.85rem;
+  }
+
+  .meta-text span {
+    font-size: 0.72rem;
+  }
+
+  /* Botones anterior/siguiente (arriba a la derecha) */
+  .player-controls {
+    grid-column: 2 / 3;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .control-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  /* Reproductor/Iframe (abajo ocupando todo el ancho) */
+  .player-embed {
+    grid-column: 1 / 3;
+    max-width: 100%;
+    width: 100%;
+    height: 52px;
+    margin: 0;
+  }
+}

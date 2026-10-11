@@ -1,7 +1,7 @@
 {
   "name": "KekuSound",
-  "short_name": "KekuSoun",
-  "description": "Tu reproductor de música personal en alta fidelidad",
+  "short_name": "KekuSound",
+  "description": "Tu reproductor KekuSound",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#090d16",
@@ -12,6 +12,18 @@
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/KekuSound.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/KekuSound.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

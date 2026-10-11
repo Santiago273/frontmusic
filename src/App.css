@@ -42,3 +42,19 @@ body {
   margin-top: 4rem;
   font-size: 0.95rem;
 }
+
+/* src/App.css */
+
+.music-app {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 1rem 7rem 1rem; /* 7rem abajo para no chocar con el reproductor */
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .music-app {
+    padding: 0.75rem 0.75rem 8.5rem 0.75rem;
+  }
+}
